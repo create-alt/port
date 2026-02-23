@@ -1,10 +1,11 @@
+// src/app/projects/[id]/page.tsx
 export const dynamic = 'force-dynamic'
-// src/app/projects/[id]/page.tsx の全文
+export const revalidate = 0
+export const fetchCache = 'force-no-store' // ← 追加: Next.jsのキャッシュを完全に無効化
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-// ▼ updateApplication を追加
 import { applyToProject, cancelApplication, updateApplication } from './actions'
 
 type FormQuestion = {
@@ -14,12 +15,6 @@ type FormQuestion = {
   options?: string
 }
 
-type Application = {
-  id: string
-  applicant_id: string
-  answers: Record<string, string | string[]>
-}
-
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -27,30 +22,36 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!user) redirect('/login')
 
+  // 1. プロジェクト情報だけをシンプルに取得
   const { data: project } = await supabase
     .from('projects')
-    .select('*, profiles(*), applications(*)')
+    .select('*, profiles(*)')
     .eq('id', id)
     .single()
 
   if (!project) return <div className="p-8 text-center">プロジェクトが見つかりません</div>
 
-  // 設問が文字列になっている場合のバリア処理
+  // 2. 【超重要】自分の申し込みデータを「独立して直接」取得する！
+  // これにより、古いキャッシュに邪魔されることなく確実にデータを見つけ出します
+  const { data: myApplication } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('project_id', id)
+    .eq('applicant_id', user.id)
+    .maybeSingle()
+
   let schema: FormQuestion[] = []
   if (Array.isArray(project.form_schema)) {
     schema = project.form_schema
   } else if (typeof project.form_schema === 'string') {
     try { schema = JSON.parse(project.form_schema) } catch (e) {}
   }
-  
-  // 自分が既に申し込んでいるかチェック
-  const myApplication = project.applications?.find((app: Application) => app.applicant_id === user.id)
 
   return (
     <div className="max-w-3xl mx-auto p-8">
       <Link href="/" className="text-blue-500 hover:underline text-sm mb-6 block">← トップページへ戻る</Link>
       
-      {/* プロジェクト詳細の表示エリア (変更なし) */}
+      {/* プロジェクト詳細の表示エリア */}
       <div className="bg-white p-8 border border-gray-200 rounded-xl shadow-sm mb-8">
         <h1 className="text-3xl font-bold mb-4">{project.title}</h1>
         
@@ -98,14 +99,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold">応募済み</span>
           </div>
           
-          {/* ▼ 更新フォーム ▼ */}
           <form action={updateApplication} className="flex flex-col gap-6 mb-8">
             <input type="hidden" name="applicationId" value={myApplication.id} />
             <input type="hidden" name="projectId" value={project.id} />
             
             {schema.map((q) => {
               const options = q.options ? q.options.split(',').map((o: string) => o.trim()) : []
-              const currentAnswer = myApplication.answers[q.id] // 過去の回答を取得
+              const currentAnswer = myApplication.answers[q.id]
 
               return (
                 <div key={q.id} className="bg-white p-6 border border-blue-100 rounded-lg">
@@ -140,7 +140,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </button>
           </form>
 
-          {/* ▼ 削除ボタン ▼ */}
           <form action={cancelApplication} className="border-t border-blue-200 pt-6">
             <input type="hidden" name="applicationId" value={myApplication.id} />
             <input type="hidden" name="projectId" value={project.id} />
@@ -150,7 +149,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </form>
         </div>
       ) : (
-        /* 未申し込みの場合のフォーム (変更なし) */
         <div className="bg-white p-8 border border-gray-200 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold mb-4 border-b pb-2">このプロジェクトに申し込む</h2>
           <form action={applyToProject} className="flex flex-col gap-6">
@@ -179,8 +177,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </div>
               )
             })}
-            
-            {schema.length === 0 && <p className="text-gray-500">特別な設問はありません。そのまま申し込めます。</p>}
             
             <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-green-700 transition mt-2 shadow-md">
               申し込みを確定する

@@ -52,8 +52,8 @@ export async function applyToProject(formData: FormData) {
   }
 
   // Next.jsのキャッシュをすべて破棄し、URLに「?success=true」を付けて強制リロードさせる！
-  revalidatePath('/', 'layout')
-  redirect(`/projects/${projectId}?success=true`)
+  revalidatePath(`/projects/${projectId}`)
+  redirect(`/projects/${projectId}?t=${Date.now()}`)
 }
 
 export async function updateApplication(formData: FormData) {
@@ -85,8 +85,8 @@ export async function updateApplication(formData: FormData) {
 
   await supabase.from('applications').update({ answers: answers }).eq('id', applicationId).eq('applicant_id', user.id)
 
-  revalidatePath('/', 'layout')
-  redirect(`/projects/${projectId}?updated=true`)
+  revalidatePath(`/projects/${projectId}`)
+  redirect(`/projects/${projectId}?t=${Date.now()}`)
 }
 
 export async function cancelApplication(formData: FormData) {
@@ -99,6 +99,6 @@ export async function cancelApplication(formData: FormData) {
 
   await supabase.from('applications').delete().eq('id', applicationId).eq('applicant_id', user.id)
 
-  revalidatePath('/', 'layout')
-  redirect(`/projects/${projectId}?canceled=true`)
+  revalidatePath(`/projects/${projectId}`)
+  redirect(`/projects/${projectId}?t=${Date.now()}`)
 }
