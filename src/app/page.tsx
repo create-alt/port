@@ -16,6 +16,7 @@ type Project = {
   profiles: {
     display_name: string | null
     school: string | null
+    avatar_url: string | null // ←これを追加
   } | null
 }
 
@@ -40,7 +41,8 @@ export default async function Home() {
       created_at,
       profiles (
         display_name,
-        school
+        school,
+        avatar_url   // ←これを追加
       )
     `)
     .order('created_at', { ascending: false })
@@ -88,6 +90,12 @@ export default async function Home() {
                 <h3 className="text-xl font-bold mb-2 pr-20">{project.title}</h3>
                 
                 <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+                  {project.profiles?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={project.profiles.avatar_url} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gray-200" />
+                  )}
                   <span className="font-semibold text-gray-700">{project.profiles?.display_name || '名無し'}</span>
                   {project.profiles?.school && (
                     <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs">{project.profiles.school}</span>
