@@ -98,4 +98,49 @@ export async function cancelApplication(formData: FormData) {
   revalidatePath('/')
   revalidatePath(`/projects/${projectId}`)
   redirect(`/projects/${projectId}`)
+
+  
+}
+
+export async function updateApplication(formData: FormData) {
+  const applicationId = formData.get('applicationId') as string
+  const projectId = formData.get('projectId') as string
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return redirect('/login')
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', projectId)
+    .single()
+
+  if (!project) return
+
+  const answers: Record<string, string | string[]> = {}
+  const schema: FormQuestion[] = project.form_schema || []
+
+  schema.forEach((q: FormQuestion) => {
+    if (q.type === 'checkbox') {
+      answers[q.id] = formData.getAll(q.id) as string[]
+    } else {
+      answers[q.id] = formData.get(q.id) as string
+    }
+  })
+
+  // 既存のデータを UPDATE（上書き）する
+  const { error } = await supabase
+    .from('applications')
+    .update({ answers: answers })
+    .eq('id', applicationId)
+    .eq('applicant_id', user.id)
+
+  if (error) {
+    console.error('申し込み更新エラー:', error)
+  }
+
+  revalidatePath('/')
+  revalidatePath(`/projects/${projectId}`)
+  redirect(`/projects/${projectId}`)
 }

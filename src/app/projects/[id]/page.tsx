@@ -1,10 +1,11 @@
-// src/app/projects/[id]/page.tsx
+// src/app/projects/[id]/page.tsx の全文
+
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { applyToProject, cancelApplication } from './actions'
+// ▼ updateApplication を追加
+import { applyToProject, cancelApplication, updateApplication } from './actions'
 
-// ▼ フォーム設問の型
 type FormQuestion = {
   id: string
   type: 'text' | 'radio' | 'checkbox'
@@ -12,7 +13,6 @@ type FormQuestion = {
   options?: string
 }
 
-// ▼ 申し込みデータの型（これを追加）
 type Application = {
   id: string
   applicant_id: string
@@ -34,16 +34,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!project) return <div className="p-8 text-center">プロジェクトが見つかりません</div>
 
-  const schema: FormQuestion[] = project.form_schema || []
+  // 設問が文字列になっている場合のバリア処理
+  let schema: FormQuestion[] = []
+  if (Array.isArray(project.form_schema)) {
+    schema = project.form_schema
+  } else if (typeof project.form_schema === 'string') {
+    try { schema = JSON.parse(project.form_schema) } catch (e) {}
+  }
   
-  // ▼ any を Application に変更
+  // 自分が既に申し込んでいるかチェック
   const myApplication = project.applications?.find((app: Application) => app.applicant_id === user.id)
 
   return (
     <div className="max-w-3xl mx-auto p-8">
       <Link href="/" className="text-blue-500 hover:underline text-sm mb-6 block">← トップページへ戻る</Link>
       
-      {/* ▼ プロジェクト詳細の表示エリア ▼ */}
+      {/* プロジェクト詳細の表示エリア (変更なし) */}
       <div className="bg-white p-8 border border-gray-200 rounded-xl shadow-sm mb-8">
         <h1 className="text-3xl font-bold mb-4">{project.title}</h1>
         
@@ -83,37 +89,67 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* ▼ 申し込み・回答編集エリア ▼ */}
+      {/* ▼ 申し込み・編集エリア ▼ */}
       {myApplication ? (
         <div className="bg-blue-50 border border-blue-200 p-8 rounded-xl shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-blue-800">申し込み済みです</h2>
-            <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold">応募完了</span>
+            <h2 className="text-xl font-bold text-blue-800">申し込み内容の確認・編集</h2>
+            <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold">応募済み</span>
           </div>
           
-          <div className="bg-white p-6 rounded-lg border border-blue-100 mb-6 space-y-4">
-            <h3 className="font-bold text-gray-700 border-b pb-2 mb-4">あなたの回答内容</h3>
-            {schema.map((q) => (
-              <div key={q.id}>
-                <p className="text-sm font-bold text-gray-500 mb-1">{q.label}</p>
-                <p className="text-gray-900 font-medium">
-                  {Array.isArray(myApplication.answers[q.id]) 
-                    ? (myApplication.answers[q.id] as string[]).join(' / ') 
-                    : (myApplication.answers[q.id] as string || '未回答')}
-                </p>
-              </div>
-            ))}
-          </div>
-          
-          <form action={cancelApplication}>
+          {/* ▼ 更新フォーム ▼ */}
+          <form action={updateApplication} className="flex flex-col gap-6 mb-8">
             <input type="hidden" name="applicationId" value={myApplication.id} />
             <input type="hidden" name="projectId" value={project.id} />
-            <button type="submit" className="w-full bg-red-100 text-red-600 p-4 rounded-xl font-bold hover:bg-red-200 transition border border-red-200">
-              申し込みを取り消す
+            
+            {schema.map((q) => {
+              const options = q.options ? q.options.split(',').map((o: string) => o.trim()) : []
+              const currentAnswer = myApplication.answers[q.id] // 過去の回答を取得
+
+              return (
+                <div key={q.id} className="bg-white p-6 border border-blue-100 rounded-lg">
+                  <label className="block font-bold text-gray-700 mb-3">{q.label}</label>
+                  
+                  {q.type === 'text' && (
+                    <textarea name={q.id} required rows={3} defaultValue={currentAnswer as string || ''} className="w-full border p-3 rounded-md resize-none" />
+                  )}
+                  
+                  {q.type === 'radio' && options.map((opt: string, idx: number) => (
+                    <label key={idx} className="flex items-center gap-2 mb-2 cursor-pointer">
+                      <input type="radio" name={q.id} value={opt} required defaultChecked={currentAnswer === opt} className="w-4 h-4 text-blue-600" />
+                      <span>{opt}</span>
+                    </label>
+                  ))}
+                  
+                  {q.type === 'checkbox' && options.map((opt: string, idx: number) => {
+                    const isChecked = Array.isArray(currentAnswer) ? currentAnswer.includes(opt) : currentAnswer === opt
+                    return (
+                      <label key={idx} className="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input type="checkbox" name={q.id} value={opt} defaultChecked={isChecked} className="w-4 h-4 rounded text-blue-600" />
+                        <span>{opt}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )
+            })}
+            
+            <button type="submit" className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition mt-2 shadow-md">
+              回答内容を更新する
+            </button>
+          </form>
+
+          {/* ▼ 削除ボタン ▼ */}
+          <form action={cancelApplication} className="border-t border-blue-200 pt-6">
+            <input type="hidden" name="applicationId" value={myApplication.id} />
+            <input type="hidden" name="projectId" value={project.id} />
+            <button type="submit" className="w-full bg-white text-red-500 border border-red-200 p-4 rounded-xl font-bold hover:bg-red-50 transition">
+              申し込みを完全に取り消す
             </button>
           </form>
         </div>
       ) : (
+        /* 未申し込みの場合のフォーム (変更なし) */
         <div className="bg-white p-8 border border-gray-200 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold mb-4 border-b pb-2">このプロジェクトに申し込む</h2>
           <form action={applyToProject} className="flex flex-col gap-6">
