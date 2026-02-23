@@ -35,7 +35,8 @@ export async function signup(formData: FormData) {
 
   if (error) {
     console.error('【新規登録エラー】:', error.message)
-    redirect('/login?error=true')
+    // エラーメッセージをURLパラメータとして渡す
+    redirect(`/login?error=${encodeURIComponent(error.message)}`)
   }
 
   // ▼ ここを変更：登録成功時は、ログイン画面にメッセージ付きで戻す ▼

@@ -56,11 +56,14 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
           {applicants.map((app) => (
             <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <div className="flex items-center gap-4 mb-4 border-b pb-4">
-                {app.profiles.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={app.profiles.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover border" />
+                {/* ▼ app.profiles の直後に ? を追加してクラッシュを防ぎます ▼ */}
+                {app.profiles?.avatar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={app.profiles.avatar_url} alt="avatar" className="w-14 h-14 rounded-full object-cover border" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-200 border" />
+                  <div className="w-14 h-14 rounded-full bg-gray-200 border flex items-center justify-center text-[10px] text-gray-400 font-bold">
+                    NoImage
+                  </div>
                 )}
                 <div>
                   <h3 className="font-bold text-lg">{app.profiles.display_name}</h3>
