@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/projects/[id]/page.tsx の全文
 
 import { createClient } from '@/utils/supabase/server'
