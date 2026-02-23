@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/login/page.tsx
 import Link from 'next/link'
 import { login, signup } from './actions'
