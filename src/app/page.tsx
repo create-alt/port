@@ -2,13 +2,16 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { deleteProject } from './actions'
+import { SubmitButton } from './login/submit-button'
 
-// 取得するプロジェクトの型定義
 type Project = {
   id: string
+  author_id: string // ← 追加
   title: string
   description: string
   required_skills: string[]
+  contact_info: string | null // ← 追加
   created_at: string
   profiles: {
     display_name: string | null
@@ -19,20 +22,21 @@ type Project = {
 export default async function Home() {
   const supabase = await createClient()
 
-  // 1. ユーザーの認証確認
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return redirect('/login')
   }
 
-  // 2. プロジェクト一覧の取得 (profilesテーブルと結合して作成者情報も取得)
+  // author_id と contact_info を取得に追加
   const { data, error } = await supabase
     .from('projects')
     .select(`
       id,
+      author_id,
       title,
       description,
       required_skills,
+      contact_info,
       created_at,
       profiles (
         display_name,
@@ -41,16 +45,10 @@ export default async function Home() {
     `)
     .order('created_at', { ascending: false })
 
-  // 取得したデータを Project 型の配列としてキャスト（型を強制）する
   const projects = data as Project[] | null
-
-  if (error) {
-    console.error('プロジェクトの取得に失敗しました:', error)
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      {/* ヘッダー部分 */}
       <header className="flex justify-between items-center mb-8 pb-4 border-b">
         <h1 className="text-3xl font-bold text-blue-600">Port</h1>
         <div className="text-sm text-gray-600 flex items-center gap-4">
@@ -58,59 +56,64 @@ export default async function Home() {
           <Link href="/profile" className="text-blue-600 hover:underline font-semibold border border-blue-600 px-3 py-1 rounded-md">
             プロフィール編集
           </Link>
-          {/* 今後実装するログアウトボタン */}
-          <button className="text-red-500 hover:underline">ログアウト</button>
         </div>
       </header>
 
-      {/* メインコンテンツ */}
       <main>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">募集中のプロジェクト</h2>
-          <Link 
-            href="/projects/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold shadow-sm"
-          >
+          <Link href="/projects/new" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold">
             新規プロジェクトを作成
           </Link>
         </div>
 
-        {/* プロジェクト一覧のカード表示 */}
         <div className="grid gap-6">
           {projects && projects.length > 0 ? (
-           projects.map((project) => (
-              <div key={project.id} className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white hover:shadow-md transition">
-                <h3 className="text-xl font-bold mb-2">{project.title}</h3>
+            projects.map((project) => (
+              <div key={project.id} className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white hover:shadow-md transition relative">
+                
+                {/* 自分の投稿なら削除ボタンを表示（ご要望2の対応） */}
+                {user.id === project.author_id && (
+                  <form action={deleteProject} className="absolute top-6 right-6">
+                    <input type="hidden" name="projectId" value={project.id} />
+                    <SubmitButton 
+                      className="text-red-500 text-sm hover:underline"
+                      pendingText="削除中..."
+                    >
+                      削除する
+                    </SubmitButton>
+                  </form>
+                )}
+
+                <h3 className="text-xl font-bold mb-2 pr-20">{project.title}</h3>
                 
                 <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
-                  <span className="font-semibold text-gray-700">
-                    {project.profiles?.display_name || '名無し'}
-                  </span>
+                  <span className="font-semibold text-gray-700">{project.profiles?.display_name || '名無し'}</span>
                   {project.profiles?.school && (
-                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs">
-                      {project.profiles.school}
-                    </span>
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs">{project.profiles.school}</span>
                   )}
                 </div>
                 
-                <p className="text-gray-700 mb-6 whitespace-pre-wrap leading-relaxed">
-                  {project.description}
-                </p>
+                <p className="text-gray-700 mb-6 whitespace-pre-wrap leading-relaxed">{project.description}</p>
                 
-                {/* 求めるスキルのタグ表示 */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap mb-4">
                   {project.required_skills && project.required_skills.map((skill, index) => (
                     <span key={index} className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full border border-gray-200">
                       {skill}
                     </span>
                   ))}
                 </div>
+
+                {/* 連絡手段の表示 */}
+                {project.contact_info && (
+                  <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-900 border border-blue-100">
+                    <span className="font-semibold">連絡先:</span> {project.contact_info}
+                  </div>
+                )}
               </div>
             ))
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-500 mb-4">現在募集中のプロジェクトはありません。</p>
-            </div>
+            <p className="text-center py-12 text-gray-500 border rounded-xl bg-gray-50">現在募集中のプロジェクトはありません。</p>
           )}
         </div>
       </main>

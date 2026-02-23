@@ -1,9 +1,30 @@
 // src/app/projects/new/page.tsx
+import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createProject } from './actions'
 import { SubmitButton } from '@/app/login/submit-button'
 
-export default function NewProjectPage() {
+export default async function NewProjectPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  // プロフィールが設定されているかチェック（ご要望4の対応）
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    // プロフィールがなければ強制リダイレクト
+    redirect('/profile?message=プロフィールを設定してから募集を行ってください')
+  }
+
   return (
     <div className="max-w-2xl mx-auto p-8">
       <div className="mb-8">
@@ -11,58 +32,39 @@ export default function NewProjectPage() {
           ← トップページに戻る
         </Link>
         <h1 className="text-3xl font-bold mt-4">新規プロジェクトの募集</h1>
-        <p className="text-gray-600 mt-2">
-          一緒に開発する仲間や、コンテストに出場するメンバーを集めましょう！
-        </p>
       </div>
 
       <form action={createProject} className="flex flex-col gap-6 bg-white p-8 border border-gray-200 rounded-xl shadow-sm">
-        
-        {/* プロジェクト名 */}
         <div className="flex flex-col gap-2">
           <label htmlFor="title" className="font-semibold text-gray-700">プロジェクト名・募集タイトル</label>
-          <input
-            id="title"
-            name="title"
-            type="text"
-            required
-            placeholder="例: 熊出没検知システム「Bearrier」のUI開発メンバー募集"
-            className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input id="title" name="title" type="text" required className="border p-3 rounded-md" />
         </div>
 
-        {/* 求めるスキル */}
         <div className="flex flex-col gap-2">
           <label htmlFor="skills" className="font-semibold text-gray-700">求める技術・スキル（カンマ区切り）</label>
-          <input
-            id="skills"
-            name="skills"
-            type="text"
-            placeholder="例: React, TypeScript, Next.js, Python"
-            className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-xs text-gray-500">複数ある場合は「,（カンマ）」で区切って入力してください。</span>
+          <input id="skills" name="skills" type="text" className="border p-3 rounded-md" />
         </div>
 
-        {/* 詳細な説明 */}
         <div className="flex flex-col gap-2">
-          <label htmlFor="description" className="font-semibold text-gray-700">プロジェクトの詳細・募集背景</label>
-          <textarea
-            id="description"
-            name="description"
+          <label htmlFor="description" className="font-semibold text-gray-700">プロジェクトの詳細</label>
+          <textarea id="description" name="description" required rows={5} className="border p-3 rounded-md resize-none" />
+        </div>
+
+        {/* 連絡手段の追加（ご要望3の対応） */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="contact_info" className="font-semibold text-gray-700">連絡手段</label>
+          <input 
+            id="contact_info" 
+            name="contact_info" 
+            type="text" 
             required
-            rows={6}
-            placeholder="例: Raspberry Piとカメラを使って熊を検知し、撃退するシステムを作っています。一緒にWebアプリ側のフロントエンドを開発してくれる人を探しています！"
-            className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            placeholder="例: X (旧Twitter) のDM: @your_id、またはメール: xxx@example.com"
+            className="border p-3 rounded-md" 
           />
         </div>
 
-        {/* 送信ボタン */}
         <div className="mt-4">
-          <SubmitButton 
-            pendingText="募集を投稿中..."
-            className="w-full bg-blue-600 text-white p-3 rounded-md font-bold text-lg"
-          >
+          <SubmitButton pendingText="公開中..." className="w-full bg-blue-600 text-white p-3 rounded-md font-bold text-lg">
             募集を公開する
           </SubmitButton>
         </div>
