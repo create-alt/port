@@ -1,18 +1,25 @@
 // src/app/projects/[id]/page.tsx
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store' // ← 追加: Next.jsのキャッシュを完全に無効化
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { applyToProject, cancelApplication, updateApplication } from './actions'
 
+// ▼ 型定義を追加
 type FormQuestion = {
   id: string
   type: 'text' | 'radio' | 'checkbox'
   label: string
   options?: string
+}
+
+// ▼ 申し込みデータの型を追加
+type Application = {
+  id: string
+  applicant_id: string
+  answers: Record<string, string | string[]>
 }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,29 +29,28 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!user) redirect('/login')
 
-  // 1. プロジェクト情報だけをシンプルに取得
+  // ▼ 募集者側と同じ「一括取得」に変更！これで絶対にデータが見つかります
   const { data: project } = await supabase
     .from('projects')
-    .select('*, profiles(*)')
+    .select('*, profiles(*), applications(*)') 
     .eq('id', id)
     .single()
 
   if (!project) return <div className="p-8 text-center">プロジェクトが見つかりません</div>
 
-  // 2. 【超重要】自分の申し込みデータを「独立して直接」取得する！
-  // これにより、古いキャッシュに邪魔されることなく確実にデータを見つけ出します
-  const { data: myApplication } = await supabase
-    .from('applications')
-    .select('*')
-    .eq('project_id', id)
-    .eq('applicant_id', user.id)
-    .maybeSingle()
+  // ▼ any を排除し Application 型を指定
+  const myApplication = project.applications?.find((app: Application) => app.applicant_id === user.id)
 
   let schema: FormQuestion[] = []
   if (Array.isArray(project.form_schema)) {
     schema = project.form_schema
   } else if (typeof project.form_schema === 'string') {
-    try { schema = JSON.parse(project.form_schema) } catch (e) {}
+    try { 
+      const parsed = JSON.parse(project.form_schema)
+      schema = Array.isArray(parsed) ? parsed : [] 
+    } catch (e) {
+      schema = []
+    }
   }
 
   return (
