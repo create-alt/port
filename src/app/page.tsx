@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 // 取得するプロジェクトの型定義
 type Project = {
@@ -63,10 +64,12 @@ export default async function Home() {
       <main>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">募集中のプロジェクト</h2>
-          {/* 今後実装する新規作成ボタン */}
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold shadow-sm">
+          <Link 
+            href="/projects/new"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold shadow-sm"
+          >
             新規プロジェクトを作成
-          </button>
+          </Link>
         </div>
 
         {/* プロジェクト一覧のカード表示 */}
