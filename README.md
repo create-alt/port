@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# port - 高専生のためのプロジェクトマッチングプラットフォーム
 
-## Getting Started
+**公開URL (Vercel):** 【[https://port-eight-xi.vercel.app/](https://port-eight-xi.vercel.app/)】
 
-First, run the development server:
+**開発期間:** 2026.01.xx ~ 2026.02.xx (約【30】時間)
+
+---
+
+## 概要
+
+「port」は、技術者の卵が集まる高専において、学生同士で人材を募り、プロジェクトを立ち上げるためのマッチングアプリケーションです。
+
+「コンテストに出たい」「こんなシステムを作りたい」という熱意やアイデアを持つ学生と、「何か開発したいけれど、テーマが決まっていない」「自分のスキル（フロントエンド、AI、ハードウェア等）を活かせる場所を探している」という学生を繋ぎ、コミュニティの枠を超えた共創を促進します。
+
+## スクリーンショット
+
+*※以下のプレースホルダーを実際の画像（またはGIF動画）に置き換えてください。*
+
+1. **トップページ（募集プロジェクト一覧）**
+   ![トップページ](【画像のURLまたはリポジトリ内の相対パス】)
+   *現在募集中のプロジェクトが新着順にカード形式で表示されます。*
+
+2. **プロフィール設定画面**
+   ![プロフィール設定](【画像のURLまたはリポジトリ内の相対パス】)
+   *自身の得意な技術スタックやアバター画像を設定し、ポートフォリオとして活用できます。*
+
+3. **新規プロジェクト募集（動的フォーム作成）**
+   ![プロジェクト作成](【画像のURLまたはリポジトリ内の相対パス】)
+   *自由記述、ラジオボタン、チェックボックスなど、プロジェクトの要件に合わせて応募者に聞きたい独自の設問を作成できます。*
+
+4. **プロジェクト申し込み画面**
+   ![申し込み画面](【画像のURLまたはリポジトリ内の相対パス】)
+   *募集者が設定したカスタムフォームに沿って、希望する担当領域や意気込みを入力して応募します。*
+
+5. **応募者管理画面（投稿者用）**
+   ![応募者管理](【画像のURLまたはリポジトリ内の相対パス】)
+   *誰からどのような回答で応募が来たかを一覧で確認し、チームメンバーの選定を行えます。*
+
+## 主な機能
+
+- **ユーザー認証**: Supabase Authを用いたセキュアなサインアップ/ログイン機能。
+- **プロフィール機能**: アイコン画像（Supabase Storage連携）、所属、スキルの登録。
+- **プロジェクト募集機能**: 求めるスキルや連絡手段の提示機能。
+- **カスタムフォームビルダー**: 募集者が応募用フォームの設問を動的に追加・編集できる機能。
+- **応募・管理機能**: プロジェクトへの申し込み機能と、投稿者専用の応募者回答閲覧機能。
+- **DB維持機能**: GitHub Actionsを用いた定期Ping送信によるSupabaseの一時停止防止。
+
+## 技術スタック
+
+- **Frontend**: Next.js 15 (App Router), React, Tailwind CSS, TypeScript
+- **Backend/Database**: Supabase (PostgreSQL, Auth, Storage)
+- **Deployment**: Vercel
+- **CI/CD**: GitHub Actions (Supabase Auto-pause prevention)
+
+## ローカルでの環境構築手順
 
 ```bash
+# 1. リポジトリのクローン
+git clone [https://github.com/](https://github.com/)【あなたのユーザー名】/port.git
+cd port
+
+# 2. 依存関係のインストール
+npm install
+
+# 3. 環境変数の設定
+# .env.local を作成し、Supabaseのキーを設定してください。
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# 4. 開発サーバーの起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# http://localhost:3000 にアクセスして確認
