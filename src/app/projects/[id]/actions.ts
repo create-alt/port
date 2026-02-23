@@ -4,7 +4,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
-// ▼ 型定義を追加
 type FormQuestion = {
   id: string
   type: 'text' | 'radio' | 'checkbox'
@@ -18,16 +17,11 @@ export async function applyToProject(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) {
-    console.log('【エラー】ユーザーが未ログインです')
-    return
-  }
+  if (!user) return
 
-  console.log('【2】プロジェクト情報取得')
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) return
 
-  // ▼ any を排除し FormQuestion[] を使用
   let schema: FormQuestion[] = []
   if (Array.isArray(project.form_schema)) {
     schema = project.form_schema
@@ -40,7 +34,6 @@ export async function applyToProject(formData: FormData) {
     }
   }
 
-  // ▼ any を排除
   const answers: Record<string, string | string[]> = {}
   schema.forEach((q: FormQuestion) => {
     if (q.type === 'checkbox') {
@@ -50,7 +43,6 @@ export async function applyToProject(formData: FormData) {
     }
   })
 
-  console.log('【3】データベースへ保存実行')
   const { error } = await supabase.from('applications').insert({
     project_id: projectId,
     applicant_id: user.id,
@@ -58,13 +50,11 @@ export async function applyToProject(formData: FormData) {
   })
 
   if (error) {
-    console.log('【エラー】保存失敗:', error.message)
     redirect(`/projects/${projectId}?error=true`)
   }
 
-  console.log('【4】保存成功！画面を切り替えます')
-  // エラーの原因になりやすい revalidatePath を削除し、一発でリダイレクトさせます
-  redirect(`/projects/${projectId}?success=${Date.now()}`)
+  // ▼ 一覧ページ（トップ）へリダイレクトするように変更
+  redirect(`/?success=applied`)
 }
 
 export async function updateApplication(formData: FormData) {
@@ -98,16 +88,20 @@ export async function updateApplication(formData: FormData) {
   })
 
   await supabase.from('applications').update({ answers }).eq('id', applicationId).eq('applicant_id', user.id)
-  redirect(`/projects/${projectId}?updated=${Date.now()}`)
+  
+  // ▼ 一覧ページ（トップ）へリダイレクトするように変更
+  redirect(`/?success=updated`)
 }
 
 export async function cancelApplication(formData: FormData) {
   const applicationId = formData.get('applicationId') as string
-  const projectId = formData.get('projectId') as string
+  const projectId = formData.get('projectId') as string // 今は使わなくなりますが、念のため残しておきます
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
   await supabase.from('applications').delete().eq('id', applicationId).eq('applicant_id', user.id)
-  redirect(`/projects/${projectId}?canceled=${Date.now()}`)
+  
+  // ▼ 一覧ページ（トップ）へリダイレクトするように変更
+  redirect(`/?success=canceled`)
 }
