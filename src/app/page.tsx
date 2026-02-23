@@ -47,7 +47,10 @@ export default async function Home() {
       )
     `)
     .order('created_at', { ascending: false })
-
+  if (error) {
+    console.error('【データ取得エラー】:', error)
+  }
+  console.log('【取得したデータ】:', data)
   const projects = data as Project[] | null
 
   return (
