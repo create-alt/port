@@ -1,3 +1,4 @@
+// src/app/login/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -6,7 +7,6 @@ import { createClient } from '@/utils/supabase/server'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
-
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -15,6 +15,8 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
+    // ▼ この1行を追加 ▼
+    console.error('【ログインエラー】:', error.message)
     redirect('/login?error=true')
   }
 
@@ -24,7 +26,6 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
-
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -33,6 +34,8 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
+    // ▼ この1行を追加 ▼
+    console.error('【新規登録エラー】:', error.message)
     redirect('/login?error=true')
   }
 
