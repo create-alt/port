@@ -35,12 +35,26 @@ export default async function ApplicantsPage({ params }: { params: { id: string 
     .single()
 
   if (!project || project.author_id !== user.id) {
-    return <div>アクセス権限がありません。</div>
+    return <div className="p-8 text-center">アクセス権限がありません。</div>
   }
 
-  // ▼ 2. 型を明示
-  const schema: FormQuestion[] = project.form_schema || []
-  const applicants: Application[] = project.applications || []
+  // ▼ バリア1: 設問データ(form_schema)が配列じゃない場合（古いデータや文字化け）を安全に処理
+  let schema: FormQuestion[] = []
+  if (Array.isArray(project.form_schema)) {
+    schema = project.form_schema
+  } else if (typeof project.form_schema === 'string') {
+    try {
+      const parsed = JSON.parse(project.form_schema)
+      schema = Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      schema = []
+    }
+  }
+
+  // ▼ バリア2: 応募者データが万が一配列じゃなかった場合も空配列にする
+  const applicants: Application[] = Array.isArray(project.applications) 
+    ? project.applications 
+    : []
 
   return (
     <div className="max-w-4xl mx-auto p-8">
