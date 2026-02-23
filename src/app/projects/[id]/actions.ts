@@ -5,7 +5,6 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-// ▼ フォーム設問の型（これを追加）
 type FormQuestion = {
   id: string
   type: 'text' | 'radio' | 'checkbox'
@@ -20,20 +19,18 @@ export async function applyToProject(formData: FormData) {
   
   if (!user) redirect('/login')
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', projectId)
-    .single()
-
+  const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) return
 
-  const answers: Record<string, string | string[]> = {}
-  
-  // ▼ any を排除し、FormQuestion[] 型を指定
-  const schema: FormQuestion[] = project.form_schema || []
+  // 安全に設問データを読み込むバリア
+  let schema: FormQuestion[] = []
+  if (Array.isArray(project.form_schema)) {
+    schema = project.form_schema
+  } else if (typeof project.form_schema === 'string') {
+    try { schema = JSON.parse(project.form_schema); schema = Array.isArray(schema) ? schema : [] } catch (e) {}
+  }
 
-  // ▼ any を FormQuestion に変更
+  const answers: Record<string, string | string[]> = {}
   schema.forEach((q: FormQuestion) => {
     if (q.type === 'checkbox') {
       answers[q.id] = formData.getAll(q.id) as string[]
@@ -42,64 +39,21 @@ export async function applyToProject(formData: FormData) {
     }
   })
 
-  const { error } = await supabase
-    .from('applications')
-    .insert({
-      project_id: projectId,
-      applicant_id: user.id,
-      answers: answers
-    })
+  // データベースに保存（ここで成功している）
+  const { error } = await supabase.from('applications').insert({
+    project_id: projectId,
+    applicant_id: user.id,
+    answers: answers
+  })
 
   if (error) {
     console.error('申し込み保存エラー:', error)
     redirect(`/projects/${projectId}?error=true`)
   }
 
-  // --- メール通知処理 ---
-  try {
-    const { data: applicantProfile } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .single()
-      
-    const applicantName = applicantProfile?.display_name || '名無し'
-    const mailSubject = '新しい申し込みがありました'
-    const mailBody = `${applicantName}さんが『${project.title}』に申し込みました`
-
-    console.log('【システム通知】', mailBody)
-  } catch (mailError) {
-    console.error('メール送信中にエラーが発生しましたが、申し込みは完了しています:', mailError)
-  }
-
-  revalidatePath('/')
-  revalidatePath(`/projects/${projectId}`)
-  redirect(`/projects/${projectId}`)
-}
-
-export async function cancelApplication(formData: FormData) {
-  const applicationId = formData.get('applicationId') as string
-  const projectId = formData.get('projectId') as string
-  
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
-
-  const { error } = await supabase
-    .from('applications')
-    .delete()
-    .eq('id', applicationId)
-    .eq('applicant_id', user.id)
-
-  if (error) {
-    console.error('申し込み取消エラー:', error)
-  }
-
-  revalidatePath('/')
-  revalidatePath(`/projects/${projectId}`)
-  redirect(`/projects/${projectId}`)
-
-  
+  // Next.jsのキャッシュをすべて破棄し、URLに「?success=true」を付けて強制リロードさせる！
+  revalidatePath('/', 'layout')
+  redirect(`/projects/${projectId}?success=true`)
 }
 
 export async function updateApplication(formData: FormData) {
@@ -110,30 +64,17 @@ export async function updateApplication(formData: FormData) {
 
   if (!user) return redirect('/login')
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', projectId)
-    .single()
-
+  const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
   if (!project) return
 
-  const answers: Record<string, string | string[]> = {}
-  
-  // ▼ 修正: 文字列だった場合（JSON）のパース処理を追加
   let schema: FormQuestion[] = []
   if (Array.isArray(project.form_schema)) {
     schema = project.form_schema
   } else if (typeof project.form_schema === 'string') {
-    try {
-      const parsed = JSON.parse(project.form_schema)
-      schema = Array.isArray(parsed) ? parsed : []
-    } catch (e) {
-      schema = []
-    }
+    try { schema = JSON.parse(project.form_schema); schema = Array.isArray(schema) ? schema : [] } catch (e) {}
   }
 
-  // schemaが正しく配列になっているのでエラーにならない
+  const answers: Record<string, string | string[]> = {}
   schema.forEach((q: FormQuestion) => {
     if (q.type === 'checkbox') {
       answers[q.id] = formData.getAll(q.id) as string[]
@@ -142,18 +83,22 @@ export async function updateApplication(formData: FormData) {
     }
   })
 
-  // 既存のデータを UPDATE（上書き）する
-  const { error } = await supabase
-    .from('applications')
-    .update({ answers: answers })
-    .eq('id', applicationId)
-    .eq('applicant_id', user.id)
+  await supabase.from('applications').update({ answers: answers }).eq('id', applicationId).eq('applicant_id', user.id)
 
-  if (error) {
-    console.error('申し込み更新エラー:', error)
-  }
+  revalidatePath('/', 'layout')
+  redirect(`/projects/${projectId}?updated=true`)
+}
 
-  revalidatePath('/')
-  revalidatePath(`/projects/${projectId}`)
-  redirect(`/projects/${projectId}`)
+export async function cancelApplication(formData: FormData) {
+  const applicationId = formData.get('applicationId') as string
+  const projectId = formData.get('projectId') as string
+  
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('applications').delete().eq('id', applicationId).eq('applicant_id', user.id)
+
+  revalidatePath('/', 'layout')
+  redirect(`/projects/${projectId}?canceled=true`)
 }
