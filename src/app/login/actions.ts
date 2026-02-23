@@ -34,11 +34,10 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    // ▼ この1行を追加 ▼
     console.error('【新規登録エラー】:', error.message)
     redirect('/login?error=true')
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  // ▼ ここを変更：登録成功時は、ログイン画面にメッセージ付きで戻す ▼
+  redirect('/login?message=登録したメールアドレスに確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。')
 }
