@@ -1,0 +1,23 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # 毎日 日本時間 午前9時 (UTC 0:00) に実行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行も可能にする
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # SupabaseのREST APIを叩いてプロジェクトをアクティブに保つ
+          # どのテーブルでも良いですが、auth/v1/health か単なるテーブル読み取りを行います
+          # ここでは簡単なcurlでルート情報の取得を試みます
+          curl -f -X GET "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY"
