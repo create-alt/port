@@ -43,7 +43,7 @@ export default async function Home() {
       profiles (
         display_name,
         school,
-        avatar_url   // ←これを追加
+        avatar_url
       )
     `)
     .order('created_at', { ascending: false })
