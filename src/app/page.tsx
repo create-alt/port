@@ -54,8 +54,11 @@ export default async function Home() {
       <header className="flex justify-between items-center mb-8 pb-4 border-b">
         <h1 className="text-3xl font-bold text-blue-600">Port</h1>
         <div className="text-sm text-gray-600 flex items-center gap-4">
-          <span>ログイン中: {user.email}</span>
-          {/* 今後実装するログアウトボタンのプレースホルダー */}
+          <span>{user.email}</span>
+          <Link href="/profile" className="text-blue-600 hover:underline font-semibold border border-blue-600 px-3 py-1 rounded-md">
+            プロフィール編集
+          </Link>
+          {/* 今後実装するログアウトボタン */}
           <button className="text-red-500 hover:underline">ログアウト</button>
         </div>
       </header>
