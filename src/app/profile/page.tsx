@@ -67,6 +67,16 @@ export default async function ProfilePage() {
           <input id="skills" name="skills" type="text" defaultValue={profile?.skills?.join(', ') || ''} className="border p-3 rounded-md" />
         </div>
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium">連絡先 (メールアドレスやSNS IDなど)</label>
+          <input
+            name="contact_info"
+            defaultValue={profile?.contact_info || ''}
+            placeholder="連絡を取りたい際に相手に見える情報です"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
         <div className="flex flex-col gap-2">
           <label htmlFor="bio" className="font-semibold text-gray-700">自己紹介</label>
           <textarea id="bio" name="bio" rows={4} defaultValue={profile?.bio || ''} className="border p-3 rounded-md resize-none" />
