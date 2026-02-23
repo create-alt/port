@@ -119,8 +119,21 @@ export async function updateApplication(formData: FormData) {
   if (!project) return
 
   const answers: Record<string, string | string[]> = {}
-  const schema: FormQuestion[] = project.form_schema || []
+  
+  // ▼ 修正: 文字列だった場合（JSON）のパース処理を追加
+  let schema: FormQuestion[] = []
+  if (Array.isArray(project.form_schema)) {
+    schema = project.form_schema
+  } else if (typeof project.form_schema === 'string') {
+    try {
+      const parsed = JSON.parse(project.form_schema)
+      schema = Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      schema = []
+    }
+  }
 
+  // schemaが正しく配列になっているのでエラーにならない
   schema.forEach((q: FormQuestion) => {
     if (q.type === 'checkbox') {
       answers[q.id] = formData.getAll(q.id) as string[]
