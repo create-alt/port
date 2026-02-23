@@ -16,7 +16,8 @@ export async function createProject(formData: FormData) {
   const title = formData.get('title') as string
   const description = formData.get('description') as string
   const skillsString = formData.get('skills') as string
-  const contact_info = formData.get('contact_info') as string // ← 追加
+  const contact_info = formData.get('contact_info') as string
+  const form_schema = JSON.parse(formData.get('form_schema') as string || '[]') // ← これを追加
 
   const required_skills = skillsString
     .split(',')
@@ -30,7 +31,8 @@ export async function createProject(formData: FormData) {
       title,
       description,
       required_skills,
-      contact_info, // ← 追加
+      contact_info,
+      form_schema, // ← これを追加
     })
 
   if (error) {

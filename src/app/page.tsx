@@ -118,6 +118,23 @@ export default async function Home() {
                     <span className="font-semibold">連絡先:</span> {project.contact_info}
                   </div>
                 )}
+                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                  {user.id === project.author_id ? (
+                    <Link 
+                      href={`/projects/${project.id}/applicants`}
+                      className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900 transition text-sm font-semibold"
+                    >
+                      応募者を管理する
+                    </Link>
+                  ) : (
+                    <Link 
+                      href={`/projects/${project.id}/apply`}
+                      className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition font-bold"
+                    >
+                      申し込む
+                    </Link>
+                  )}
+                </div>
               </div>
             ))
           ) : (
